@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package protocol;
+
+option go_package = "github.com/baoswarm/baobun/pkg/protocol/proto";
+
+// PeerMessageType enum
+enum PeerMessageType {
+  MSG_HANDSHAKE = 0;
+  MSG_BITFIELD = 1;
+  MSG_HAVE = 2;
+  MSG_REQUEST = 3;
+  MSG_TRANSFER = 4;
+  MSG_REJECT = 5;
+}
+
+// PeerMessage structure
+message PeerMessage {
+  bytes info_hash = 1;
+  PeerMessageType type = 2;
+  bytes payload = 3;
+}
+
+// HandshakePayload structure
+message HandshakePayload {
+  bytes info_hash = 1;
+  string peer_id = 2;
+}
+
+// BitfieldPayload structure
+message BitfieldPayload {
+  bytes bits = 1;
+}
+
+// HavePayload structure
+message HavePayload {
+  uint64 unit_index = 1;
+}
+
+// TransferRequestPayload structure
+message TransferRequestPayload {
+  uint64 unit_index = 1;
+}
+
+// TransferPayload structure
+message BaoProofNode {
+  bytes hash = 1;   // 32 bytes BLAKE3 hash
+  uint32 level = 2; // subtree height (0 = leaf, 1 = parent of 2 leaves, etc.)
+}
+message BaoProof {
+  int64 leaf_start = 1;   // first leaf index of segment
+  int64 leaf_count = 2;   // number of leaves in segment
+  repeated BaoProofNode proof = 3;     // Bao subtree-compressed proof
+}
+message TransferPayload {
+  uint64 unit_index = 1;
+  bytes data = 2;
+  BaoProof proof = 3;  // Add this field
+}
+
+// RejectPayload structure
+message RejectPayload {
+  uint64 unit_index = 1;
+  string reason = 2;
+}
