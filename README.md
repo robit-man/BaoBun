@@ -65,7 +65,7 @@ Current client mode starts local web endpoints:
 - You can drag and drop one or more files anywhere on the UI.
 - `.bao` files are imported as metadata.
 - Non-`.bao` files are accepted and converted into new swarms automatically.
-- Torrent details `Files` tab now shows file path, size, remaining bytes, and progress.
+- Bao details `Files` tab now shows file path, size, remaining bytes, and progress.
 
 ## Manual Setup
 Use this if you do not want the auto scripts.

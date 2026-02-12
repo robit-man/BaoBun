@@ -3,16 +3,16 @@
   import {
     autoGenerateSeedConfig,
     fetchSeedConfig,
-    fetchTorrents,
+    fetchBaos,
     saveSeedConfig,
     uploadBao,
   } from "./lib/api";
-  import type { SeedConfig, TorrentStatus } from "./lib/types";
+  import type { SeedConfig, BaoStatus } from "./lib/types";
   import FileDrop from "./components/FileDrop.svelte";
   import SeedConfigModal from "./components/SeedConfigModal.svelte";
-  import TorrentsList from "./lib/TorrentsList.svelte";
+  import BaosList from "./lib/BaosList.svelte";
 
-  let torrents: TorrentStatus[] = [];
+  let baos: BaoStatus[] = [];
   let error: string | null = null;
   let configOpen = false;
   let configBusy = false;
@@ -26,7 +26,7 @@
 
   async function refresh() {
     try {
-      torrents = await fetchTorrents();
+      baos = await fetchBaos();
       error = null;
     } catch {
       error = "Disconnected";
@@ -127,8 +127,8 @@
 />
 
 <div class="page-shell">
-  <TorrentsList
-    {torrents}
+  <BaosList
+    {baos}
     {error}
     {uploadError}
     {uploadMessage}

@@ -15,11 +15,11 @@ func NewAdapter(c *core.Client) *Adapter {
 	return &Adapter{client: c}
 }
 
-func (a *Adapter) Torrents() []TorrentStatus {
-	coreTorrents := a.client.Swarms
+func (a *Adapter) Baos() []BaoStatus {
+	coreBaos := a.client.Swarms
 
-	out := make([]TorrentStatus, 0, len(coreTorrents))
-	for _, t := range coreTorrents {
+	out := make([]BaoStatus, 0, len(coreBaos))
+	for _, t := range coreBaos {
 		remaining := t.CalcLeft()
 		downloaded := t.File.Length - remaining
 		uploaded := t.Uploaded
@@ -32,7 +32,7 @@ func (a *Adapter) Torrents() []TorrentStatus {
 		downrate := uint32(0)
 		uprate := uint32(0)
 
-		record := TorrentStatus{
+		record := BaoStatus{
 			ID:         fmt.Sprintf("%x", t.InfoHash),
 			Name:       t.File.Name,
 			DownRate:   uint32(downrate),
@@ -86,7 +86,7 @@ func (a *Adapter) Torrents() []TorrentStatus {
 	return out
 }
 
-func mapState(client *core.Client, s *core.Swarm) TorrentState {
+func mapState(client *core.Client, s *core.Swarm) BaoState {
 	if client.IsPaused(s.InfoHash) {
 		return StatePaused
 	}

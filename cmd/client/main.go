@@ -12,7 +12,6 @@ import (
 	"github.com/baoswarm/baobun/internal/api"
 	appconfig "github.com/baoswarm/baobun/internal/config"
 	"github.com/baoswarm/baobun/internal/core"
-	"github.com/baoswarm/baobun/internal/debugs"
 	nkntransport "github.com/baoswarm/baobun/internal/transport/nkn"
 	"github.com/baoswarm/baobun/internal/webui"
 	"github.com/baoswarm/baobun/pkg/protocol"
@@ -141,14 +140,14 @@ func LaunchWebApp(core *core.Client, seedStore *appconfig.SeedStore, addr string
 	mux := http.NewServeMux()
 
 	// API
-	mux.HandleFunc("/api/v1/torrents", apiServer.HandleTorrents)
+	mux.HandleFunc("/api/v1/baos", apiServer.HandleBaos)
 	mux.HandleFunc("/api/v1/bao", apiServer.UploadBao)
-	mux.HandleFunc("/api/v1/torrents/actions/pause", apiServer.PauseTorrents)
-	mux.HandleFunc("/api/v1/torrents/actions/archive", apiServer.ArchiveTorrents)
-	mux.HandleFunc("/api/v1/torrents/actions/delete", apiServer.DeleteTorrents)
-	mux.HandleFunc("/api/v1/torrents/actions/hide", apiServer.HideTorrents)
-	mux.HandleFunc("/api/v1/torrents/hidden/count", apiServer.HiddenCount)
-	mux.HandleFunc("/api/v1/torrents/hidden/unhide", apiServer.UnhideTorrents)
+	mux.HandleFunc("/api/v1/baos/actions/pause", apiServer.PauseBaos)
+	mux.HandleFunc("/api/v1/baos/actions/archive", apiServer.ArchiveBaos)
+	mux.HandleFunc("/api/v1/baos/actions/delete", apiServer.DeleteBaos)
+	mux.HandleFunc("/api/v1/baos/actions/hide", apiServer.HideBaos)
+	mux.HandleFunc("/api/v1/baos/hidden/count", apiServer.HiddenCount)
+	mux.HandleFunc("/api/v1/baos/hidden/unhide", apiServer.UnhideBaos)
 	mux.HandleFunc("/api/v1/config/seeds", apiServer.HandleSeedConfig)
 	mux.HandleFunc("/api/v1/config/seeds/generate", apiServer.GenerateSeedConfig)
 

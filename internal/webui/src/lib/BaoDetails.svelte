@@ -1,7 +1,7 @@
 <script lang="ts">
-  import type { TorrentStatus } from "./types";
+  import type { BaoStatus } from "./types";
 
-  export let torrent: TorrentStatus | null = null;
+  export let bao: BaoStatus | null = null;
   let tab: "peers" | "files" = "peers";
 
   function rate(n: number) {
@@ -34,8 +34,8 @@
   </div>
 
   <div class="content">
-    {#if !torrent}
-      <div class="empty">Select a torrent to see details</div>
+    {#if !bao}
+      <div class="empty">Select a bao to see details</div>
     {:else if tab === "peers"}
       <table>
         <thead>
@@ -48,7 +48,7 @@
         </thead>
 
         <tbody>
-          {#each [...(torrent.peers ?? [])].sort((a, b) => a.id.localeCompare(b.id)) as p}
+          {#each [...(bao.peers ?? [])].sort((a, b) => a.id.localeCompare(b.id)) as p}
             <tr>
               <td>{p.id}</td>
               <td>{p.state}</td>
@@ -58,8 +58,8 @@
           {/each}
         </tbody>
       </table>
-    {:else if !torrent.files?.length}
-      <div class="empty">No files found for this torrent</div>
+    {:else if !bao.files?.length}
+      <div class="empty">No files found for this bao</div>
     {:else}
       <table>
         <thead>
@@ -71,7 +71,7 @@
           </tr>
         </thead>
         <tbody>
-          {#each torrent.files ?? [] as f}
+          {#each bao.files ?? [] as f}
             <tr>
               <td>{f.path}</td>
               <td>{size(f.length)}</td>

@@ -1,15 +1,15 @@
 // internal/api/types.go
 package api
 
-type TorrentState string
+type BaoState string
 
 const (
-	StateDownloading TorrentState = "downloading"
-	StateSeeding     TorrentState = "seeding"
-	StateStopped     TorrentState = "stopped"
-	StatePaused      TorrentState = "paused"
-	StateQueued      TorrentState = "queued"
-	StateError       TorrentState = "error"
+	StateDownloading BaoState = "downloading"
+	StateSeeding     BaoState = "seeding"
+	StateStopped     BaoState = "stopped"
+	StatePaused      BaoState = "paused"
+	StateQueued      BaoState = "queued"
+	StateError       BaoState = "error"
 )
 
 type PeerState string
@@ -19,7 +19,7 @@ const (
 	StateOnline  PeerState = "online"
 )
 
-type TorrentStatus struct {
+type BaoStatus struct {
 	ID         string       `json:"id"`
 	Name       string       `json:"name"`
 	DownRate   uint32       `json:"downRate"` // bytes/sec
@@ -29,7 +29,7 @@ type TorrentStatus struct {
 	Ratio      float64      `json:"ratio"`
 	Peers      []PeerStatus `json:"peers"`
 	Files      []FileStatus `json:"files"`
-	State      TorrentState `json:"state"`
+	State      BaoState     `json:"state"`
 	FileSize   uint64       `json:"fileSize"`
 	Remaining  uint64       `json:"remaining"`
 }
@@ -63,11 +63,11 @@ type SeedConfigUpdateRequest struct {
 	Seeds []string `json:"seeds"`
 }
 
-type TorrentActionRequest struct {
+type BaoActionRequest struct {
 	IDs []string `json:"ids"`
 }
 
-type HideTorrentActionRequest struct {
+type HideBaoActionRequest struct {
 	IDs     []string `json:"ids"`
 	Passkey string   `json:"passkey"`
 }
@@ -76,7 +76,7 @@ type HiddenPasskeyRequest struct {
 	Passkey string `json:"passkey"`
 }
 
-type TorrentActionResponse struct {
+type BaoActionResponse struct {
 	Processed  int    `json:"processed"`
 	Hidden     int    `json:"hidden"`
 	Remaining  int    `json:"remaining"`

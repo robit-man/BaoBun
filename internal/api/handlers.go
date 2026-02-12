@@ -45,19 +45,19 @@ func NewServer(api *Adapter, core *core.Client, seedStore *appconfig.SeedStore) 
 	return server
 }
 
-func (s *Server) HandleTorrents(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleBaos(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	torrents := s.api.Torrents()
+	baos := s.api.Baos()
 
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(torrents)
+	_ = json.NewEncoder(w).Encode(baos)
 }
 
-func (s *Server) PauseTorrents(w http.ResponseWriter, r *http.Request) {
+func (s *Server) PauseBaos(w http.ResponseWriter, r *http.Request) {
 	ids, ok := s.decodeActionIDs(w, r)
 	if !ok {
 		return
@@ -74,16 +74,16 @@ func (s *Server) PauseTorrents(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	s.writeActionResponse(w, TorrentActionResponse{
+	s.writeActionResponse(w, BaoActionResponse{
 		Processed:  processed,
 		Hidden:     s.hiddenCount(),
-		Remaining:  len(s.api.Torrents()),
+		Remaining:  len(s.api.Baos()),
 		Successful: true,
-		Message:    "Paused selected torrents.",
+		Message:    "Paused selected baos.",
 	})
 }
 
-func (s *Server) ArchiveTorrents(w http.ResponseWriter, r *http.Request) {
+func (s *Server) ArchiveBaos(w http.ResponseWriter, r *http.Request) {
 	ids, ok := s.decodeActionIDs(w, r)
 	if !ok {
 		return
@@ -108,16 +108,16 @@ func (s *Server) ArchiveTorrents(w http.ResponseWriter, r *http.Request) {
 		processed++
 	}
 
-	s.writeActionResponse(w, TorrentActionResponse{
+	s.writeActionResponse(w, BaoActionResponse{
 		Processed:  processed,
 		Hidden:     s.hiddenCount(),
-		Remaining:  len(s.api.Torrents()),
+		Remaining:  len(s.api.Baos()),
 		Successful: true,
-		Message:    "Archived selected torrents.",
+		Message:    "Archived selected baos.",
 	})
 }
 
-func (s *Server) DeleteTorrents(w http.ResponseWriter, r *http.Request) {
+func (s *Server) DeleteBaos(w http.ResponseWriter, r *http.Request) {
 	ids, ok := s.decodeActionIDs(w, r)
 	if !ok {
 		return
@@ -142,16 +142,16 @@ func (s *Server) DeleteTorrents(w http.ResponseWriter, r *http.Request) {
 		processed++
 	}
 
-	s.writeActionResponse(w, TorrentActionResponse{
+	s.writeActionResponse(w, BaoActionResponse{
 		Processed:  processed,
 		Hidden:     s.hiddenCount(),
-		Remaining:  len(s.api.Torrents()),
+		Remaining:  len(s.api.Baos()),
 		Successful: true,
-		Message:    "Deleted selected torrents.",
+		Message:    "Deleted selected baos.",
 	})
 }
 
-func (s *Server) HideTorrents(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HideBaos(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -162,7 +162,7 @@ func (s *Server) HideTorrents(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	var req HideTorrentActionRequest
+	var req HideBaoActionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "invalid JSON body", http.StatusBadRequest)
 		return
@@ -209,12 +209,12 @@ func (s *Server) HideTorrents(w http.ResponseWriter, r *http.Request) {
 		processed++
 	}
 
-	s.writeActionResponse(w, TorrentActionResponse{
+	s.writeActionResponse(w, BaoActionResponse{
 		Processed:  processed,
 		Hidden:     s.hiddenCount(),
-		Remaining:  len(s.api.Torrents()),
+		Remaining:  len(s.api.Baos()),
 		Successful: true,
-		Message:    "Hidden selected torrents.",
+		Message:    "Hidden selected baos.",
 	})
 }
 
@@ -230,7 +230,7 @@ func (s *Server) HiddenCount(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *Server) UnhideTorrents(w http.ResponseWriter, r *http.Request) {
+func (s *Server) UnhideBaos(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -277,12 +277,12 @@ func (s *Server) UnhideTorrents(w http.ResponseWriter, r *http.Request) {
 		processed++
 	}
 
-	s.writeActionResponse(w, TorrentActionResponse{
+	s.writeActionResponse(w, BaoActionResponse{
 		Processed:  processed,
 		Hidden:     s.hiddenCount(),
-		Remaining:  len(s.api.Torrents()),
+		Remaining:  len(s.api.Baos()),
 		Successful: true,
-		Message:    "Restored hidden torrents.",
+		Message:    "Restored hidden baos.",
 	})
 }
 
@@ -510,7 +510,7 @@ func (s *Server) decodeActionIDs(w http.ResponseWriter, r *http.Request) ([]stri
 	}
 	defer r.Body.Close()
 
-	var req TorrentActionRequest
+	var req BaoActionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "invalid JSON body", http.StatusBadRequest)
 		return nil, false
@@ -523,7 +523,7 @@ func (s *Server) decodeActionIDs(w http.ResponseWriter, r *http.Request) ([]stri
 	return req.IDs, true
 }
 
-func (s *Server) writeActionResponse(w http.ResponseWriter, payload TorrentActionResponse) {
+func (s *Server) writeActionResponse(w http.ResponseWriter, payload BaoActionResponse) {
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(payload)
 }

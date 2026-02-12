@@ -1,11 +1,11 @@
 <script lang="ts">
   import { createEventDispatcher, onMount } from "svelte";
   import {
-    applyTorrentAction,
+    applyBaoAction,
     fetchHiddenCount,
-    unhideTorrents,
+    unhideBaos,
   } from "./api";
-  import type { TorrentStatus } from "./types";
+  import type { BaoStatus } from "./types";
   import baoSwarmIcon from "../assets/baoswarm.png";
 
   type UploadFile = { name: string; data: Uint8Array };
@@ -18,7 +18,7 @@
     | "stopped"
     | "active";
 
-  export let torrents: TorrentStatus[] = [];
+  export let baos: BaoStatus[] = [];
   export let error: string | null = null;
   export let uploadError: string | null = null;
   export let uploadMessage: string | null = null;
@@ -65,20 +65,20 @@
     { id: "active", label: "Active", icon: "\u26A1" },
   ];
 
-  $: filtered = torrents
-    .filter((torrent) => matchesFilter(torrent, activeFilter))
-    .filter((torrent) =>
-      torrent.name.toLowerCase().includes(searchTerm.trim().toLowerCase())
+  $: filtered = baos
+    .filter((bao) => matchesFilter(bao, activeFilter))
+    .filter((bao) =>
+      bao.name.toLowerCase().includes(searchTerm.trim().toLowerCase())
     )
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  $: totalDownRate = torrents.reduce((sum, torrent) => sum + torrent.downRate, 0);
-  $: totalUpRate = torrents.reduce((sum, torrent) => sum + torrent.upRate, 0);
+  $: totalDownRate = baos.reduce((sum, bao) => sum + bao.downRate, 0);
+  $: totalUpRate = baos.reduce((sum, bao) => sum + bao.upRate, 0);
 
   $: allVisibleSelected =
-    filtered.length > 0 && filtered.every((torrent) => selectedIds.has(torrent.id));
+    filtered.length > 0 && filtered.every((bao) => selectedIds.has(bao.id));
   $: someVisibleSelected =
-    filtered.length > 0 && filtered.some((torrent) => selectedIds.has(torrent.id));
+    filtered.length > 0 && filtered.some((bao) => selectedIds.has(bao.id));
   $: selectedCount = selectedIds.size;
 
   $: if (selectAllEl) {
@@ -115,7 +115,7 @@
     actionMessage = null;
 
     try {
-      const result = await applyTorrentAction(action, selectedIDs());
+      const result = await applyBaoAction(action, selectedIDs());
       hiddenCount = result.hidden;
       actionMessage = result.message;
       clearSelection();
@@ -123,7 +123,7 @@
       await refreshHiddenCount();
     } catch (err) {
       actionError =
-        err instanceof Error ? err.message : `Failed to ${action} selected torrents`;
+        err instanceof Error ? err.message : `Failed to ${action} selected baos`;
     } finally {
       actionBusy = false;
     }
@@ -151,7 +151,7 @@
     actionError = null;
     actionMessage = null;
     try {
-      const result = await applyTorrentAction("hide", selectedIDs(), hidePasskey);
+      const result = await applyBaoAction("hide", selectedIDs(), hidePasskey);
       hiddenCount = result.hidden;
       actionMessage = result.message;
       hideModalOpen = false;
@@ -160,7 +160,7 @@
       await refreshHiddenCount();
     } catch (err) {
       actionError =
-        err instanceof Error ? err.message : "Failed to hide selected torrents";
+        err instanceof Error ? err.message : "Failed to hide selected baos";
     } finally {
       actionBusy = false;
     }
@@ -188,51 +188,51 @@
     actionError = null;
     actionMessage = null;
     try {
-      const result = await unhideTorrents(unhidePasskey);
+      const result = await unhideBaos(unhidePasskey);
       hiddenCount = result.hidden;
       actionMessage = result.message;
       unhideModalOpen = false;
       dispatch("refresh");
       await refreshHiddenCount();
     } catch (err) {
-      actionError = err instanceof Error ? err.message : "Failed to unhide torrents";
+      actionError = err instanceof Error ? err.message : "Failed to unhide baos";
     } finally {
       actionBusy = false;
     }
   }
 
-  function isDownloading(torrent: TorrentStatus): boolean {
-    return torrent.state === "downloading" && torrent.remaining > 0;
+  function isDownloading(bao: BaoStatus): boolean {
+    return bao.state === "downloading" && bao.remaining > 0;
   }
 
-  function isSeeding(torrent: TorrentStatus): boolean {
-    return torrent.state === "seeding" || (torrent.remaining === 0 && torrent.upRate > 0);
+  function isSeeding(bao: BaoStatus): boolean {
+    return bao.state === "seeding" || (bao.remaining === 0 && bao.upRate > 0);
   }
 
-  function isCompleted(torrent: TorrentStatus): boolean {
-    return torrent.remaining === 0;
+  function isCompleted(bao: BaoStatus): boolean {
+    return bao.remaining === 0;
   }
 
-  function isStopped(torrent: TorrentStatus): boolean {
-    return !isDownloading(torrent) && !isSeeding(torrent);
+  function isStopped(bao: BaoStatus): boolean {
+    return !isDownloading(bao) && !isSeeding(bao);
   }
 
-  function isActive(torrent: TorrentStatus): boolean {
-    return torrent.downRate > 0 || torrent.upRate > 0;
+  function isActive(bao: BaoStatus): boolean {
+    return bao.downRate > 0 || bao.upRate > 0;
   }
 
-  function matchesFilter(torrent: TorrentStatus, filterId: FilterId): boolean {
+  function matchesFilter(bao: BaoStatus, filterId: FilterId): boolean {
     switch (filterId) {
       case "downloading":
-        return isDownloading(torrent);
+        return isDownloading(bao);
       case "seeding":
-        return isSeeding(torrent);
+        return isSeeding(bao);
       case "completed":
-        return isCompleted(torrent);
+        return isCompleted(bao);
       case "stopped":
-        return isStopped(torrent);
+        return isStopped(bao);
       case "active":
-        return isActive(torrent);
+        return isActive(bao);
       default:
         return true;
     }
@@ -240,9 +240,9 @@
 
   function filterCount(filterId: FilterId): number {
     if (filterId === "all") {
-      return torrents.length;
+      return baos.length;
     }
-    return torrents.filter((torrent) => matchesFilter(torrent, filterId)).length;
+    return baos.filter((bao) => matchesFilter(bao, filterId)).length;
   }
 
   function formatBytes(value: number): string {
@@ -263,17 +263,17 @@
     return value.toFixed(2);
   }
 
-  function progressPercent(torrent: TorrentStatus): number {
-    if (torrent.fileSize <= 0) return 0;
-    const pct = ((torrent.fileSize - torrent.remaining) / torrent.fileSize) * 100;
+  function progressPercent(bao: BaoStatus): number {
+    if (bao.fileSize <= 0) return 0;
+    const pct = ((bao.fileSize - bao.remaining) / bao.fileSize) * 100;
     return Math.max(0, Math.min(100, Math.round(pct)));
   }
 
-  function progressEta(torrent: TorrentStatus): string {
-    if (torrent.remaining <= 0) return "Done";
-    if (torrent.downRate <= 0) return "--";
+  function progressEta(bao: BaoStatus): string {
+    if (bao.remaining <= 0) return "Done";
+    if (bao.downRate <= 0) return "--";
 
-    const seconds = Math.ceil(torrent.remaining / torrent.downRate);
+    const seconds = Math.ceil(bao.remaining / bao.downRate);
     if (seconds < 60) return `${seconds}s`;
     if (seconds < 3600) return `${Math.ceil(seconds / 60)}m`;
 
@@ -287,22 +287,22 @@
   }
 
   function statusLabel(
-    torrent: TorrentStatus
+    bao: BaoStatus
   ): "Downloading" | "Seeding" | "Paused" | "Stopped" {
-    if (torrent.state === "paused") {
+    if (bao.state === "paused") {
       return "Paused";
     }
-    if (isDownloading(torrent)) {
+    if (isDownloading(bao)) {
       return "Downloading";
     }
-    if (isSeeding(torrent)) {
+    if (isSeeding(bao)) {
       return "Seeding";
     }
     return "Stopped";
   }
 
-  function statusClass(torrent: TorrentStatus): string {
-    const label = statusLabel(torrent).toLowerCase();
+  function statusClass(bao: BaoStatus): string {
+    const label = statusLabel(bao).toLowerCase();
     return `status-pill ${label}`;
   }
 
@@ -329,11 +329,11 @@
 
   function toggleAll(checked: boolean): void {
     const next = new Set(selectedIds);
-    for (const torrent of filtered) {
+    for (const bao of filtered) {
       if (checked) {
-        next.add(torrent.id);
+        next.add(bao.id);
       } else {
-        next.delete(torrent.id);
+        next.delete(bao.id);
       }
     }
     selectedIds = next;
@@ -580,7 +580,7 @@
 
     <label class="search">
       <span class="search-icon">&#8981;</span>
-      <input type="text" placeholder="Search torrents..." bind:value={searchTerm} />
+      <input type="text" placeholder="Search baos..." bind:value={searchTerm} />
     </label>
   </div>
 
@@ -614,7 +614,7 @@
       <div class="th select-col">
         <input
           bind:this={selectAllEl}
-          class="torrent-select-toggle"
+          class="bao-select-toggle"
           type="checkbox"
           checked={allVisibleSelected}
           on:change={(event) => toggleAll((event.currentTarget as HTMLInputElement).checked)}
@@ -633,23 +633,23 @@
     </div>
 
     <div class="table-body">
-      {#each filtered as torrent (torrent.id)}
+      {#each filtered as bao (bao.id)}
         <div class="table-row grid-row">
           <div class="cell select-col">
             <input
-              class="torrent-select-toggle"
+              class="bao-select-toggle"
               type="checkbox"
-              checked={isSelected(torrent.id)}
+              checked={isSelected(bao.id)}
               on:change={(event) =>
-                toggleRow(torrent.id, (event.currentTarget as HTMLInputElement).checked)}
+                toggleRow(bao.id, (event.currentTarget as HTMLInputElement).checked)}
             />
           </div>
 
-          <div class="cell name">{torrent.name}</div>
-          <div class="cell size">{formatBytes(torrent.fileSize)}</div>
+          <div class="cell name">{bao.name}</div>
+          <div class="cell size">{formatBytes(bao.fileSize)}</div>
 
           <div class="cell progress-cell">
-            {#if torrent.remaining === 0}
+            {#if bao.remaining === 0}
               <div class="progress-complete">
                 <span class="complete-icon">&#9679;</span>
                 <span>Complete</span>
@@ -657,25 +657,25 @@
             {:else}
               <div class="progress-active">
                 <div class="bar-track">
-                  <div class="bar-fill" style="width: {progressPercent(torrent)}%"></div>
+                  <div class="bar-fill" style="width: {progressPercent(bao)}%"></div>
                 </div>
                 <div class="progress-meta">
-                  <span>{progressEta(torrent)}</span>
-                  <span>{progressPercent(torrent)}%</span>
+                  <span>{progressEta(bao)}</span>
+                  <span>{progressPercent(bao)}%</span>
                 </div>
               </div>
             {/if}
           </div>
 
           <div class="cell">
-            <span class={statusClass(torrent)}>{statusLabel(torrent)}</span>
+            <span class={statusClass(bao)}>{statusLabel(bao)}</span>
           </div>
 
-          <div class="cell numeric">{formatBytes(torrent.downloaded)}</div>
-          <div class="cell numeric">{formatBytes(torrent.uploaded)}</div>
-          <div class="cell numeric speed-down">{speedDisplay(torrent.downRate)}</div>
-          <div class="cell numeric speed-up">{speedDisplay(torrent.upRate)}</div>
-          <div class="cell numeric">{formatRatio(torrent.ratio)}</div>
+          <div class="cell numeric">{formatBytes(bao.downloaded)}</div>
+          <div class="cell numeric">{formatBytes(bao.uploaded)}</div>
+          <div class="cell numeric speed-down">{speedDisplay(bao.downRate)}</div>
+          <div class="cell numeric speed-up">{speedDisplay(bao.upRate)}</div>
+          <div class="cell numeric">{formatRatio(bao.ratio)}</div>
 
           <div class="cell actions-col">
             <button class="row-action" type="button" aria-label="Open row actions">
@@ -686,7 +686,7 @@
       {/each}
 
       {#if filtered.length === 0}
-        <div class="empty-state">No torrents match this filter.</div>
+        <div class="empty-state">No baos match this filter.</div>
       {/if}
     </div>
   </div>
@@ -887,8 +887,8 @@
       closeOnBackdropKeydown(event, () => (unhideModalOpen = false))}
   >
     <div class="modal-panel">
-      <h3>Unhide Torrents</h3>
-      <p>Enter the passkey used when hiding the torrents.</p>
+      <h3>Unhide Baos</h3>
+      <p>Enter the passkey used when hiding the baos.</p>
       <input
         type="password"
         bind:value={unhidePasskey}
@@ -1146,7 +1146,7 @@
     gap: 6px;
   }
 
-  .torrent-select-toggle {
+  .bao-select-toggle {
     appearance: none;
     width: 18px;
     height: 18px;
@@ -1161,12 +1161,12 @@
       box-shadow 120ms ease;
   }
 
-  .torrent-select-toggle:checked {
+  .bao-select-toggle:checked {
     background: #ffae00;
     border-color: #8e5f00;
   }
 
-  .torrent-select-toggle:focus-visible {
+  .bao-select-toggle:focus-visible {
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 174, 0, 0.3);
   }

@@ -1,4 +1,4 @@
-export type TorrentState =
+export type BaoState =
   | "downloading"
   | "seeding"
   | "stopped"
@@ -7,7 +7,7 @@ export type TorrentState =
   | "stalled"
   | "error";
 
-export interface TorrentStatus {
+export interface BaoStatus {
   id: string;
   name: string;
   downRate: number;   // bytes/sec
@@ -17,7 +17,7 @@ export interface TorrentStatus {
   ratio: number;
   peers: PeerStatus[];
   files: FileStatus[];
-  state: TorrentState;
+  state: BaoState;
   fileSize: number;
   remaining: number;
 }
@@ -47,9 +47,9 @@ export interface UploadBaoResponse {
   name: string;
 }
 
-export type TorrentActionKind = "pause" | "archive" | "delete" | "hide";
+export type BaoActionKind = "pause" | "archive" | "delete" | "hide";
 
-export interface TorrentActionResponse {
+export interface BaoActionResponse {
   processed: number;
   hidden: number;
   remaining: number;

@@ -9,7 +9,7 @@ import (
 	"github.com/baoswarm/baobun/pkg/protocol"
 )
 
-// Swarm tracks one torrent
+// Swarm tracks one bao
 type Swarm struct {
 	File   *BaoFile
 	FileIO *FileIO
