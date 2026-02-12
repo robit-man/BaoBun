@@ -3,7 +3,9 @@ package api
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -22,14 +24,25 @@ type Server struct {
 	api        *Adapter
 	coreClient *core.Client
 	seedStore  *appconfig.SeedStore
+	hidden     *HiddenStore
 }
 
 func NewServer(api *Adapter, core *core.Client, seedStore *appconfig.SeedStore) *Server {
-	return &Server{
+	server := &Server{
 		api:        api,
 		coreClient: core,
 		seedStore:  seedStore,
 	}
+
+	hiddenPath := filepath.Join(server.resolveDownloadDir(), ".baobun", "hidden.json")
+	store, err := NewHiddenStore(hiddenPath)
+	if err != nil {
+		log.Printf("hidden store unavailable: %v", err)
+	} else {
+		server.hidden = store
+	}
+
+	return server
 }
 
 func (s *Server) HandleTorrents(w http.ResponseWriter, r *http.Request) {
@@ -42,6 +55,235 @@ func (s *Server) HandleTorrents(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(torrents)
+}
+
+func (s *Server) PauseTorrents(w http.ResponseWriter, r *http.Request) {
+	ids, ok := s.decodeActionIDs(w, r)
+	if !ok {
+		return
+	}
+
+	processed := 0
+	for _, id := range ids {
+		ih, err := parseInfoHashHex(id)
+		if err != nil {
+			continue
+		}
+		if s.coreClient.PauseSwarm(ih) {
+			processed++
+		}
+	}
+
+	s.writeActionResponse(w, TorrentActionResponse{
+		Processed:  processed,
+		Hidden:     s.hiddenCount(),
+		Remaining:  len(s.api.Torrents()),
+		Successful: true,
+		Message:    "Paused selected torrents.",
+	})
+}
+
+func (s *Server) ArchiveTorrents(w http.ResponseWriter, r *http.Request) {
+	ids, ok := s.decodeActionIDs(w, r)
+	if !ok {
+		return
+	}
+
+	processed := 0
+	for _, id := range ids {
+		ih, err := parseInfoHashHex(id)
+		if err != nil {
+			continue
+		}
+
+		swarm, exists := s.coreClient.RemoveSwarm(ih)
+		if !exists || swarm == nil {
+			continue
+		}
+
+		swarm.DisconnectAll(s.coreClient.Sessions)
+		s.coreClient.Sessions.UnregisterSwarm(ih)
+		_ = archiveSwarmData(swarm)
+		_ = swarm.Close()
+		processed++
+	}
+
+	s.writeActionResponse(w, TorrentActionResponse{
+		Processed:  processed,
+		Hidden:     s.hiddenCount(),
+		Remaining:  len(s.api.Torrents()),
+		Successful: true,
+		Message:    "Archived selected torrents.",
+	})
+}
+
+func (s *Server) DeleteTorrents(w http.ResponseWriter, r *http.Request) {
+	ids, ok := s.decodeActionIDs(w, r)
+	if !ok {
+		return
+	}
+
+	processed := 0
+	for _, id := range ids {
+		ih, err := parseInfoHashHex(id)
+		if err != nil {
+			continue
+		}
+
+		swarm, exists := s.coreClient.RemoveSwarm(ih)
+		if !exists || swarm == nil {
+			continue
+		}
+
+		swarm.DisconnectAll(s.coreClient.Sessions)
+		s.coreClient.Sessions.UnregisterSwarm(ih)
+		_ = swarm.Close()
+		_ = deleteSwarmData(ih, swarm)
+		processed++
+	}
+
+	s.writeActionResponse(w, TorrentActionResponse{
+		Processed:  processed,
+		Hidden:     s.hiddenCount(),
+		Remaining:  len(s.api.Torrents()),
+		Successful: true,
+		Message:    "Deleted selected torrents.",
+	})
+}
+
+func (s *Server) HideTorrents(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.hidden == nil {
+		http.Error(w, "hidden store unavailable", http.StatusInternalServerError)
+		return
+	}
+	defer r.Body.Close()
+
+	var req HideTorrentActionRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid JSON body", http.StatusBadRequest)
+		return
+	}
+	if strings.TrimSpace(req.Passkey) == "" {
+		http.Error(w, "passkey is required", http.StatusBadRequest)
+		return
+	}
+
+	processed := 0
+	for _, id := range req.IDs {
+		ih, err := parseInfoHashHex(id)
+		if err != nil {
+			continue
+		}
+
+		swarm, exists := s.coreClient.RemoveSwarm(ih)
+		if !exists || swarm == nil {
+			continue
+		}
+
+		baoJSON, err := json.Marshal(swarm.File)
+		if err != nil {
+			// Reinsert swarm if we failed to serialize.
+			s.coreClient.Swarms[ih] = swarm
+			s.coreClient.Sessions.RegisterSwarm(swarm)
+			continue
+		}
+
+		err = s.hidden.Hide(HiddenPayload{
+			InfoHash:     id,
+			FileLocation: swarm.FileLocation,
+			BaoJSON:      baoJSON,
+		}, req.Passkey)
+		if err != nil {
+			s.coreClient.Swarms[ih] = swarm
+			s.coreClient.Sessions.RegisterSwarm(swarm)
+			continue
+		}
+
+		swarm.DisconnectAll(s.coreClient.Sessions)
+		s.coreClient.Sessions.UnregisterSwarm(ih)
+		_ = swarm.Close()
+		processed++
+	}
+
+	s.writeActionResponse(w, TorrentActionResponse{
+		Processed:  processed,
+		Hidden:     s.hiddenCount(),
+		Remaining:  len(s.api.Torrents()),
+		Successful: true,
+		Message:    "Hidden selected torrents.",
+	})
+}
+
+func (s *Server) HiddenCount(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(HiddenCountResponse{
+		Count: s.hiddenCount(),
+	})
+}
+
+func (s *Server) UnhideTorrents(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.hidden == nil {
+		http.Error(w, "hidden store unavailable", http.StatusInternalServerError)
+		return
+	}
+	defer r.Body.Close()
+
+	var req HiddenPasskeyRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid JSON body", http.StatusBadRequest)
+		return
+	}
+	if strings.TrimSpace(req.Passkey) == "" {
+		http.Error(w, "passkey is required", http.StatusBadRequest)
+		return
+	}
+
+	payloads, err := s.hidden.Unhide(req.Passkey)
+	if err != nil {
+		if errors.Is(err, ErrInvalidPasskey) {
+			http.Error(w, "invalid passkey", http.StatusUnauthorized)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	processed := 0
+	for _, payload := range payloads {
+		file, err := core.LoadFromBytes(payload.BaoJSON)
+		if err != nil {
+			continue
+		}
+
+		ih, err := s.coreClient.ImportBaoFile(file, payload.FileLocation)
+		if err != nil {
+			continue
+		}
+
+		s.coreClient.UnpauseSwarm(ih)
+		processed++
+	}
+
+	s.writeActionResponse(w, TorrentActionResponse{
+		Processed:  processed,
+		Hidden:     s.hiddenCount(),
+		Remaining:  len(s.api.Torrents()),
+		Successful: true,
+		Message:    "Restored hidden torrents.",
+	})
 }
 
 func (s *Server) UploadBao(w http.ResponseWriter, r *http.Request) {
@@ -259,4 +501,85 @@ func (s *Server) writeSeedConfig(w http.ResponseWriter) {
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(payload)
+}
+
+func (s *Server) decodeActionIDs(w http.ResponseWriter, r *http.Request) ([]string, bool) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return nil, false
+	}
+	defer r.Body.Close()
+
+	var req TorrentActionRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid JSON body", http.StatusBadRequest)
+		return nil, false
+	}
+	if len(req.IDs) == 0 {
+		http.Error(w, "ids are required", http.StatusBadRequest)
+		return nil, false
+	}
+
+	return req.IDs, true
+}
+
+func (s *Server) writeActionResponse(w http.ResponseWriter, payload TorrentActionResponse) {
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(payload)
+}
+
+func parseInfoHashHex(value string) (protocol.InfoHash, error) {
+	var ih protocol.InfoHash
+	raw, err := hex.DecodeString(strings.TrimSpace(value))
+	if err != nil {
+		return ih, err
+	}
+	if len(raw) != len(ih) {
+		return ih, fmt.Errorf("invalid infohash length")
+	}
+	copy(ih[:], raw)
+	return ih, nil
+}
+
+func archiveSwarmData(swarm *core.Swarm) error {
+	archiveDir := filepath.Join(swarm.FileLocation, "archive")
+	if err := os.MkdirAll(archiveDir, 0755); err != nil {
+		return err
+	}
+
+	src := filepath.Join(swarm.FileLocation, swarm.File.Name)
+	if _, err := os.Stat(src); err == nil {
+		dst := uniqueUploadPath(archiveDir, swarm.File.Name)
+		if err := os.Rename(src, dst); err != nil {
+			return err
+		}
+	}
+
+	baoName := swarm.File.Name + ".bao"
+	baoPath := uniqueUploadPath(archiveDir, baoName)
+	return swarm.File.Save(baoPath)
+}
+
+func deleteSwarmData(ih protocol.InfoHash, swarm *core.Swarm) error {
+	src := filepath.Join(swarm.FileLocation, swarm.File.Name)
+	if _, err := os.Stat(src); err == nil {
+		_ = os.Remove(src)
+	}
+
+	proofDir := filepath.Join(
+		swarm.FileLocation,
+		".baobun",
+		"proofs",
+		hex.EncodeToString(ih[:]),
+	)
+	_ = os.RemoveAll(proofDir)
+
+	return nil
+}
+
+func (s *Server) hiddenCount() int {
+	if s.hidden == nil {
+		return 0
+	}
+	return s.hidden.Count()
 }

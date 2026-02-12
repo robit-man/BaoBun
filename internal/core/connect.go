@@ -10,6 +10,10 @@ import (
 )
 
 func (c *Client) ConnectPeer(swarm *Swarm, peerKey protocol.NodeKey) {
+	if c.IsPaused(swarm.InfoHash) {
+		return
+	}
+
 	// Use the enhanced ConnectPeer with timeout
 	_, err := c.Sessions.ConnectPeer(swarm, peerKey, 10*time.Second)
 	if err != nil {
@@ -28,6 +32,9 @@ func (c *Client) AnnounceSwarm(
 	swarm, ok := c.Swarms[ih]
 	if !ok {
 		log.Printf("swarm not found: %s", ih)
+		return
+	}
+	if c.IsPaused(ih) {
 		return
 	}
 
@@ -86,6 +93,9 @@ func (c *Client) ReannounceAllSwarms(
 	ctx context.Context,
 ) {
 	for _, swarm := range c.Swarms {
+		if c.IsPaused(swarm.InfoHash) {
+			continue
+		}
 
 		req := protocol.AnnounceRequest{
 			InfoHash:   swarm.InfoHash,

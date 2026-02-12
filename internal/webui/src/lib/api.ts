@@ -1,4 +1,11 @@
-import type { SeedConfig, TorrentStatus, UploadBaoResponse } from "./types";
+import type {
+  HiddenCountResponse,
+  SeedConfig,
+  TorrentActionKind,
+  TorrentActionResponse,
+  TorrentStatus,
+  UploadBaoResponse,
+} from "./types";
 
 export async function fetchTorrents(): Promise<TorrentStatus[]> {
   const res = await fetch("/api/v1/torrents");
@@ -78,4 +85,59 @@ export async function autoGenerateSeedConfig(): Promise<SeedConfig> {
   }
 
   return res.json();
+}
+
+export async function applyTorrentAction(
+  action: TorrentActionKind,
+  ids: string[],
+  passkey?: string
+): Promise<TorrentActionResponse> {
+  const body: Record<string, unknown> = { ids };
+  if (passkey) {
+    body.passkey = passkey;
+  }
+
+  const res = await fetch(`/api/v1/torrents/actions/${action}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `failed to ${action} torrents`);
+  }
+
+  return res.json();
+}
+
+export async function unhideTorrents(
+  passkey: string
+): Promise<TorrentActionResponse> {
+  const res = await fetch("/api/v1/torrents/hidden/unhide", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ passkey }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "failed to unhide torrents");
+  }
+
+  return res.json();
+}
+
+export async function fetchHiddenCount(): Promise<number> {
+  const res = await fetch("/api/v1/torrents/hidden/count");
+  if (!res.ok) {
+    throw new Error("failed to fetch hidden count");
+  }
+
+  const payload = (await res.json()) as HiddenCountResponse;
+  return Number(payload?.count ?? 0);
 }

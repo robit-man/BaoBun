@@ -41,7 +41,7 @@ func (a *Adapter) Torrents() []TorrentStatus {
 			Uploaded:   uploaded,
 			Ratio:      ratio,
 			Peers:      make([]PeerStatus, 0),
-			State:      mapState(t),
+			State:      mapState(a.client, t),
 			FileSize:   t.File.Length,
 			Remaining:  remaining,
 			Files: []FileStatus{
@@ -86,7 +86,11 @@ func (a *Adapter) Torrents() []TorrentStatus {
 	return out
 }
 
-func mapState(s *core.Swarm) TorrentState {
+func mapState(client *core.Client, s *core.Swarm) TorrentState {
+	if client.IsPaused(s.InfoHash) {
+		return StatePaused
+	}
+
 	left := s.CalcLeft()
 	if left == 0 && len(s.Peers) > 0 {
 		return "seeding"

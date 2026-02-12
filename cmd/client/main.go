@@ -143,6 +143,12 @@ func LaunchWebApp(core *core.Client, seedStore *appconfig.SeedStore, addr string
 	// API
 	mux.HandleFunc("/api/v1/torrents", apiServer.HandleTorrents)
 	mux.HandleFunc("/api/v1/bao", apiServer.UploadBao)
+	mux.HandleFunc("/api/v1/torrents/actions/pause", apiServer.PauseTorrents)
+	mux.HandleFunc("/api/v1/torrents/actions/archive", apiServer.ArchiveTorrents)
+	mux.HandleFunc("/api/v1/torrents/actions/delete", apiServer.DeleteTorrents)
+	mux.HandleFunc("/api/v1/torrents/actions/hide", apiServer.HideTorrents)
+	mux.HandleFunc("/api/v1/torrents/hidden/count", apiServer.HiddenCount)
+	mux.HandleFunc("/api/v1/torrents/hidden/unhide", apiServer.UnhideTorrents)
 	mux.HandleFunc("/api/v1/config/seeds", apiServer.HandleSeedConfig)
 	mux.HandleFunc("/api/v1/config/seeds/generate", apiServer.GenerateSeedConfig)
 

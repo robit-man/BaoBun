@@ -80,6 +80,13 @@ func (sm *SessionManager) RegisterSwarm(
 	sm.swarms[swarm.InfoHash] = swarm
 }
 
+func (sm *SessionManager) UnregisterSwarm(infoHash protocol.InfoHash) {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+
+	delete(sm.swarms, infoHash)
+}
+
 func (sm *SessionManager) GetSession(peer protocol.NodeKey) (*Session, error) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()

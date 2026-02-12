@@ -62,3 +62,28 @@ type SeedConfigResponse struct {
 type SeedConfigUpdateRequest struct {
 	Seeds []string `json:"seeds"`
 }
+
+type TorrentActionRequest struct {
+	IDs []string `json:"ids"`
+}
+
+type HideTorrentActionRequest struct {
+	IDs     []string `json:"ids"`
+	Passkey string   `json:"passkey"`
+}
+
+type HiddenPasskeyRequest struct {
+	Passkey string `json:"passkey"`
+}
+
+type TorrentActionResponse struct {
+	Processed  int    `json:"processed"`
+	Hidden     int    `json:"hidden"`
+	Remaining  int    `json:"remaining"`
+	Successful bool   `json:"successful"`
+	Message    string `json:"message"`
+}
+
+type HiddenCountResponse struct {
+	Count int `json:"count"`
+}

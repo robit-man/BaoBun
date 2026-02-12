@@ -241,6 +241,19 @@ func (s *Swarm) MarkAllUnitsAvailable() {
 	}
 }
 
+func (s *Swarm) DisconnectAll(sm *SessionManager) {
+	s.mu.RLock()
+	handlers := make([]*PeerHandler, 0, len(s.Peers))
+	for _, peer := range s.Peers {
+		handlers = append(handlers, peer)
+	}
+	s.mu.RUnlock()
+
+	for _, handler := range handlers {
+		handler.Close(sm)
+	}
+}
+
 // GetFileIO returns a FileIO instance for a swarm's file
 // func (s *Swarm) GetFileIO(cacheSize int) (*FileIO, error) {
 // 	if s.File == nil {

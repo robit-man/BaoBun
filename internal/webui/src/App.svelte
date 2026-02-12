@@ -133,6 +133,7 @@
     {uploadError}
     {uploadMessage}
     on:load={handleLoad}
+    on:refresh={refresh}
     on:openConfig={openConfig}
   />
 </div>

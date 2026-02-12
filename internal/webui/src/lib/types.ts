@@ -46,3 +46,17 @@ export interface UploadBaoResponse {
   infoHash: string;
   name: string;
 }
+
+export type TorrentActionKind = "pause" | "archive" | "delete" | "hide";
+
+export interface TorrentActionResponse {
+  processed: number;
+  hidden: number;
+  remaining: number;
+  successful: boolean;
+  message: string;
+}
+
+export interface HiddenCountResponse {
+  count: number;
+}
