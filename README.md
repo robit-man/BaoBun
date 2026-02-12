@@ -1,3 +1,5 @@
+<img width="512" height="512" alt="baoswarm" src="https://github.com/user-attachments/assets/31b2126d-ea58-40a3-93e7-419bb681f3b2" />
+
 # BaoBun
 BaoBun is a headless BaoSwarm client with an embedded web UI.
 
