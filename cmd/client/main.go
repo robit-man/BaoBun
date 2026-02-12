@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/baoswarm/baobun/internal/api"
+	appconfig "github.com/baoswarm/baobun/internal/config"
 	"github.com/baoswarm/baobun/internal/core"
 	nkntransport "github.com/baoswarm/baobun/internal/transport/nkn"
 	"github.com/baoswarm/baobun/internal/webui"
@@ -32,14 +33,20 @@ func main() {
 		return
 	}
 
-	core0 := LaunchCore(filepath.Join(cwd, "downloads_0"), "0mmutsimutsimutsimutsimutsimutsi", true)
-	go LaunchWebApp(core0, ":8880")
-	core1 := LaunchCore(filepath.Join(cwd, "downloads_1"), "1mmutsimutsimutsimutsimutsimutsi", true)
-	go LaunchWebApp(core1, ":8881")
-	core2 := LaunchCore(filepath.Join(cwd, "downloads_2"), "2mmutsimutsimutsimutsimutsimutsi", true)
-	go LaunchWebApp(core2, ":8882")
-	core := LaunchCore(filepath.Join(cwd, "downloads"), "immutsimutsimutsimutsimutsimutsi", true)
-	go LaunchWebApp(core, ":8888")
+	seedStore, err := appconfig.NewSeedStore(filepath.Join(cwd, "seeds.json"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	seeds := seedStore.Seeds()
+
+	core0 := LaunchCore(filepath.Join(cwd, "downloads_0"), seeds[0], true)
+	go LaunchWebApp(core0, seedStore, ":8880")
+	core1 := LaunchCore(filepath.Join(cwd, "downloads_1"), seeds[1], true)
+	go LaunchWebApp(core1, seedStore, ":8881")
+	core2 := LaunchCore(filepath.Join(cwd, "downloads_2"), seeds[2], true)
+	go LaunchWebApp(core2, seedStore, ":8882")
+	core := LaunchCore(filepath.Join(cwd, "downloads"), seeds[3], true)
+	go LaunchWebApp(core, seedStore, ":8888")
 
 	// Setup signal handling
 	sigs := make(chan os.Signal, 1)
@@ -127,15 +134,17 @@ func LaunchCore(downloadsLocation string, seed string, loadTest bool) *core.Clie
 	return coreClient
 }
 
-func LaunchWebApp(core *core.Client, addr string) {
+func LaunchWebApp(core *core.Client, seedStore *appconfig.SeedStore, addr string) {
 	apiAdapter := api.NewAdapter(core)
-	apiServer := api.NewServer(apiAdapter, core)
+	apiServer := api.NewServer(apiAdapter, core, seedStore)
 
 	mux := http.NewServeMux()
 
 	// API
 	mux.HandleFunc("/api/v1/torrents", apiServer.HandleTorrents)
 	mux.HandleFunc("/api/v1/bao", apiServer.UploadBao)
+	mux.HandleFunc("/api/v1/config/seeds", apiServer.HandleSeedConfig)
+	mux.HandleFunc("/api/v1/config/seeds/generate", apiServer.GenerateSeedConfig)
 
 	// UI
 	mux.Handle("/", webui.Handler())

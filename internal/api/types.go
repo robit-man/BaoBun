@@ -35,3 +35,14 @@ type PeerStatus struct {
 	DownRate uint32    `json:"downRate"`
 	UpRate   uint32    `json:"upRate"`
 }
+
+type SeedConfigResponse struct {
+	Seeds           []string `json:"seeds"`
+	SeedLength      int      `json:"seedLength"`
+	SeedCount       int      `json:"seedCount"`
+	RestartRequired bool     `json:"restartRequired"`
+}
+
+type SeedConfigUpdateRequest struct {
+	Seeds []string `json:"seeds"`
+}

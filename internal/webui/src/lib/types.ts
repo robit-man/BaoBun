@@ -22,3 +22,10 @@ export interface PeerStatus {
   downRate: number;   // bytes/sec
   upRate: number;     // bytes/sec
 }
+
+export interface SeedConfig {
+  seeds: string[];
+  seedLength: number;
+  seedCount: number;
+  restartRequired: boolean;
+}

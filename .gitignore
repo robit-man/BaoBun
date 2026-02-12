@@ -26,6 +26,7 @@ go.work.sum
 
 # env file
 .env
+seeds.json
 
 # Editor/IDE
 # .idea/
@@ -33,3 +34,4 @@ go.work.sum
 *.mp3
 downloads_*
 __debug_bin.exe*
+.baobun/

@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"log"
 	"sync"
 
@@ -28,6 +29,8 @@ type Swarm struct {
 
 	//Proof Cache, a place to keep validated proofs
 	ProofCache map[uint64]*protocol.Proof // peerKey → handler
+	ProofStore *ProofStore
+	proofMu    sync.RWMutex
 	//TODO: We should merge proofs upwards on the tree to mimimize memory footprint, and consider clearing this map when the full file is available since
 	//at that point we can just generate proofs on demand, but needs to be researched if its worth keeping proof or not..
 }
@@ -39,6 +42,7 @@ func NewSwarm(infoHash protocol.InfoHash, file *BaoFile, fileLocation string) *S
 		Peers:        make(map[protocol.NodeKey]*PeerHandler),
 		FileLocation: fileLocation,
 		ProofCache:   make(map[uint64]*protocol.Proof),
+		ProofStore:   NewProofStore(fileLocation, infoHash),
 	}
 
 	// Initialize FileIO with cache
@@ -65,6 +69,19 @@ func NewSwarm(infoHash protocol.InfoHash, file *BaoFile, fileLocation string) *S
 		if hasData {
 			fileIO.haveUnits.Set(i)
 		}
+	}
+
+	loadedProofs, err := swarm.ProofStore.LoadAll()
+	if err != nil {
+		log.Printf("Warning: proof cache load had issues: %v", err)
+	}
+	swarm.proofMu.Lock()
+	for idx, proof := range loadedProofs {
+		swarm.ProofCache[idx] = proof
+	}
+	swarm.proofMu.Unlock()
+	if len(loadedProofs) > 0 {
+		log.Printf("Loaded %d proofs from disk cache", len(loadedProofs))
 	}
 
 	// for i := uint64(0); i < fileIO.unitCount; i++ {
@@ -135,6 +152,10 @@ func (s *Swarm) MarkTransferUnitComplete(transferUnitIndex uint64, data []byte) 
 
 // Broadcast HAVE message to all peers
 func (s *Swarm) BroadcastHave(transferUnitIndex uint64) {
+	if !s.CanServeTransferUnit(transferUnitIndex) {
+		return
+	}
+
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -143,6 +164,72 @@ func (s *Swarm) BroadcastHave(transferUnitIndex uint64) {
 			go peer.SendHave(transferUnitIndex)
 		}
 	}
+}
+
+func (s *Swarm) GetProof(transferUnitIndex uint64) *protocol.Proof {
+	s.proofMu.RLock()
+	defer s.proofMu.RUnlock()
+
+	return cloneProof(s.ProofCache[transferUnitIndex])
+}
+
+func (s *Swarm) HasProof(transferUnitIndex uint64) bool {
+	s.proofMu.RLock()
+	defer s.proofMu.RUnlock()
+
+	_, ok := s.ProofCache[transferUnitIndex]
+	return ok
+}
+
+func (s *Swarm) SaveProof(transferUnitIndex uint64, proof *protocol.Proof) error {
+	if proof == nil {
+		return fmt.Errorf("cannot save nil proof")
+	}
+
+	cloned := cloneProof(proof)
+
+	s.proofMu.Lock()
+	s.ProofCache[transferUnitIndex] = cloned
+	s.proofMu.Unlock()
+
+	if s.ProofStore != nil {
+		if err := s.ProofStore.Save(transferUnitIndex, cloned); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *Swarm) CanServeTransferUnit(transferUnitIndex uint64) bool {
+	if !s.FileIO.haveUnits.Has(transferUnitIndex) {
+		return false
+	}
+
+	if s.FileIO.IsComplete() {
+		return true
+	}
+
+	return s.HasProof(transferUnitIndex)
+}
+
+func (s *Swarm) UploadBitfieldBytes() []byte {
+	if s.FileIO.IsComplete() {
+		return s.FileIO.haveUnits.Bytes()
+	}
+
+	out := NewBitfield(s.FileIO.unitCount)
+	for i := uint64(0); i < s.FileIO.unitCount; i++ {
+		if !s.FileIO.haveUnits.Has(i) {
+			continue
+		}
+		if !s.HasProof(i) {
+			continue
+		}
+		out.Set(i)
+	}
+
+	return out.Bytes()
 }
 
 // GetFileIO returns a FileIO instance for a swarm's file

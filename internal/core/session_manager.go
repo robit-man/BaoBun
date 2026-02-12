@@ -223,10 +223,11 @@ func (sm *SessionManager) handleHandshake(sess *Session, msg protocol.PeerMessag
 		handler.SetState(protocol.StateConnected)
 
 		log.Println("Sending bitfield:")
-		log.Println(swarm.FileIO.haveUnits.ToString(swarm.FileIO.unitCount))
+		uploadBitfield := BitfieldFromBytes(swarm.UploadBitfieldBytes())
+		log.Println(uploadBitfield.ToString(swarm.FileIO.unitCount))
 
 		// Send bitfield after handshake
-		if err := handler.SendBitfield(swarm.FileIO.haveUnits.Bytes()); err != nil {
+		if err := handler.SendBitfield(swarm.UploadBitfieldBytes()); err != nil {
 			log.Printf("bitfield send failed: %v", err)
 			// Continue anyway - this isn't fatal
 		}

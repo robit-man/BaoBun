@@ -285,6 +285,10 @@ func (ph *PeerHandler) HandleMessage(msg protocol.PeerMessage) {
 
 		writeErr := ph.Swarm.FileIO.WriteTransferUnit(transferUnit.UnitIndex, transferUnit.Data)
 		if writeErr == nil {
+			if err := ph.Swarm.SaveProof(transferUnit.UnitIndex, transferUnit.Proof); err != nil {
+				log.Printf("failed to persist proof for unit %d: %v", transferUnit.UnitIndex, err)
+			}
+
 			// Notify swarm about completed transferUnit
 			ph.Swarm.MarkTransferUnitComplete(transferUnit.UnitIndex, transferUnit.Data)
 
@@ -293,8 +297,6 @@ func (ph *PeerHandler) HandleMessage(msg protocol.PeerMessage) {
 				transferUnit: transferUnit.UnitIndex,
 				data:         transferUnit.Data,
 			}
-
-			ph.Swarm.ProofCache[transferUnit.UnitIndex] = transferUnit.Proof
 
 			//TODO: Set readonly as soon as we fully downloaded the file
 			//ph.Swarm.FileIO.SwitchToReadOnly()
@@ -306,8 +308,8 @@ func (ph *PeerHandler) HandleMessage(msg protocol.PeerMessage) {
 }
 
 func (ph *PeerHandler) handleIncomingRequest(transferUnitIndex uint64) {
-	// Check if we have this transferUnit
-	if !ph.Swarm.FileIO.haveUnits.Has(transferUnitIndex) {
+	// Only serve units that we can prove.
+	if !ph.Swarm.CanServeTransferUnit(transferUnitIndex) {
 		// Don't have it
 		return
 	}
@@ -384,7 +386,7 @@ func (ph *PeerHandler) SendTransferUnit(transferUnitIndex uint64, data []byte) e
 
 	var proof *protocol.Proof
 	// Check if we have any cached proof
-	proof = ph.Swarm.ProofCache[transferUnitIndex]
+	proof = ph.Swarm.GetProof(transferUnitIndex)
 
 	if proof == nil {
 		// Generate proof for this segment
@@ -402,6 +404,9 @@ func (ph *PeerHandler) SendTransferUnit(transferUnitIndex uint64, data []byte) e
 		}
 
 		proof = generatedProof
+		if err := ph.Swarm.SaveProof(transferUnitIndex, generatedProof); err != nil {
+			log.Printf("failed to persist generated proof for unit %d: %v", transferUnitIndex, err)
+		}
 	} else {
 		log.Println("Used cached proof")
 	}

@@ -48,6 +48,19 @@ Current client mode starts local web endpoints:
 - `http://localhost:8882`
 - `http://localhost:8888`
 
+### Seed Configuration (Frontend)
+- Open any UI endpoint and click `Config`.
+- Enter your own 4 seeds and save, or click `Auto Generate + Save`.
+- Each seed must be exactly `32` characters.
+- Saved seeds are persisted to `seeds.json` at repo root.
+- Restart `baobun-client` after saving to apply new seeds.
+
+### Proof Cache Persistence
+- Validated transfer proofs are persisted on disk per swarm.
+- Cache location: `<download_dir>/.baobun/proofs/<infohash>/`.
+- After restart, partial clients can continue serving units they can prove.
+- For legacy partial data without cached proofs, those units are not advertised for upload until the node has a proof (or completes the full file).
+
 ## Manual Setup
 Use this if you do not want the auto scripts.
 

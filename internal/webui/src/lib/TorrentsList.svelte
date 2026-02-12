@@ -8,6 +8,13 @@
     selected = t;
   }
 
+  function onRowKeydown(event: KeyboardEvent, t: TorrentStatus) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      select(t);
+    }
+  }
+
   function percent(t: TorrentStatus) {
     return Math.round(((t.fileSize - t.remaining) / t.fileSize) * 100);
   }
@@ -44,12 +51,15 @@
     {#each torrents as t (t.id)}
       <div
         class="row {selected?.id === t.id ? 'selected' : ''}"
+        role="button"
+        tabindex="0"
         on:click={() => select(t)}
+        on:keydown={(event) => onRowKeydown(event, t)}
       >
         <div class="name">{t.name}</div>
         <div class="progress">
           <div class="bar">
-            <div class="fill" style="width: {percent(t)}%" />
+            <div class="fill" style="width: {percent(t)}%"></div>
           </div>
           <span class="pct">{percent(t)}%</span>
         </div>
