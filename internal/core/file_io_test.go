@@ -15,12 +15,11 @@ import (
 // Test helper to create a test BaoFile
 func createTestBaoFile(name string, size uint64, transferSize uint64) *BaoFile {
 	return &BaoFile{
-		Name:         name,
-		Length:       size,
-		TransferSize: transferSize,
-		RootHash:     "test_root_hash",
-		InfoHash:     protocol.InfoHash{},
-		Trackers:     []string{"test-tracker.com"},
+		Name:     name,
+		Length:   size,
+		RootHash: "test_root_hash",
+		InfoHash: protocol.InfoHash{},
+		Trackers: []string{"test-tracker.com"},
 	}
 }
 

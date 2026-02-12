@@ -6,14 +6,13 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"os/signal"
 	"path/filepath"
-	"syscall"
 	"time"
 
 	"github.com/baoswarm/baobun/internal/api"
 	appconfig "github.com/baoswarm/baobun/internal/config"
 	"github.com/baoswarm/baobun/internal/core"
+	"github.com/baoswarm/baobun/internal/debugs"
 	nkntransport "github.com/baoswarm/baobun/internal/transport/nkn"
 	"github.com/baoswarm/baobun/internal/webui"
 	"github.com/baoswarm/baobun/pkg/protocol"
@@ -49,25 +48,25 @@ func main() {
 	go LaunchWebApp(core, seedStore, ":8888")
 
 	// Setup signal handling
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	// sigs := make(chan os.Signal, 1)
+	// signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-	go func() {
-		<-sigs
-		fmt.Println("Shutting down gracefully...")
+	// go func() {
+	// 	<-sigs
+	// 	fmt.Println("Shutting down gracefully...")
 
-		core0.Transport.Close()
-		core1.Transport.Close()
-		core2.Transport.Close()
-		core.Transport.Close()
+	// 	core0.Transport.Close()
+	// 	core1.Transport.Close()
+	// 	core2.Transport.Close()
+	// 	core.Transport.Close()
 
-		os.Exit(0)
-	}()
+	// 	os.Exit(0)
+	// }()
 
-	defer core0.Transport.Close()
-	defer core1.Transport.Close()
-	defer core2.Transport.Close()
-	defer core.Transport.Close()
+	// defer core0.Transport.Close()
+	// defer core1.Transport.Close()
+	// defer core2.Transport.Close()
+	// defer core.Transport.Close()
 
 	select {} // block forever
 }
@@ -131,6 +130,7 @@ func LaunchCore(downloadsLocation string, seed string, loadTest bool) *core.Clie
 			}
 		}
 	}()
+
 	return coreClient
 }
 

@@ -8,9 +8,12 @@ var (
 	NumTransferResponseSend         int
 	NumTransferResponseReceived     int
 	NumTransferResponseAwaitTimeout int
+
+	ConnectedToTracker bool
 )
 
-func LogNums() {
+func DumpLog() {
+	fmt.Printf("Connection to tracker: %t\n", ConnectedToTracker)
 	fmt.Printf("NumTransferRequestSend: %d\n", NumTransferRequestSend)
 	fmt.Printf("NumTransferRequestReceived: %d\n", NumTransferRequestReceived)
 	fmt.Printf("NumTransferResponseSend: %d\n", NumTransferResponseSend)

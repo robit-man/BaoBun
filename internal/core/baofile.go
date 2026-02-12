@@ -7,22 +7,18 @@ import (
 	"os"
 	"sort"
 
+	"github.com/baoswarm/baobun/internal/config"
 	"github.com/baoswarm/baobun/pkg/protocol"
 	"github.com/zeebo/blake3"
 )
 
-const (
-	DefaultBlockSize = 65536 // Our transfer unit (64KB = 64 BLAKE3 chunks)
-)
-
 // BaoFile represents a .bao swarm file using BLAKE3's native tree
 type BaoFile struct {
-	Name         string            `json:"name"`
-	Length       uint64            `json:"length"`
-	TransferSize uint64            `json:"transfer_size"` // Our transfer unit (64KB)
-	RootHash     string            `json:"root_hash"`     // BLAKE3 root hash of entire file
-	InfoHash     protocol.InfoHash `json:"info_hash"`     // BLAKE3 of canonical JSON representation
-	Trackers     []string          `json:"trackers"`      // Tracker addresses
+	Name     string            `json:"name"`
+	Length   uint64            `json:"length"`
+	RootHash string            `json:"root_hash"` // BLAKE3 root hash of entire file
+	InfoHash protocol.InfoHash `json:"info_hash"` // BLAKE3 of canonical JSON representation
+	Trackers []string          `json:"trackers"`  // Tracker addresses
 }
 
 // CanonicalBaoFile is used for consistent hashing
@@ -57,11 +53,10 @@ func CreateFromFile(filePath string, trackers []string) (*BaoFile, error) {
 	rootHashHex := hex.EncodeToString(rootHash[:])
 
 	bao := &BaoFile{
-		Name:         fi.Name(),
-		Length:       uint64(filesize),
-		TransferSize: DefaultBlockSize,
-		Trackers:     trackers,
-		RootHash:     rootHashHex,
+		Name:     fi.Name(),
+		Length:   uint64(filesize),
+		Trackers: trackers,
+		RootHash: rootHashHex,
 	}
 
 	// Calculate info hash
@@ -76,11 +71,10 @@ func CreateFromFile(filePath string, trackers []string) (*BaoFile, error) {
 func (n *BaoFile) calculateInfoHash() error {
 	// Create canonical representation
 	canonical := CanonicalBaoFile{
-		Name:         n.Name,
-		Length:       n.Length,
-		TransferSize: n.TransferSize,
-		RootHash:     n.RootHash,
-		Trackers:     n.Trackers,
+		Name:     n.Name,
+		Length:   n.Length,
+		RootHash: n.RootHash,
+		Trackers: n.Trackers,
 	}
 
 	// Sort for consistency
@@ -98,9 +92,9 @@ func (n *BaoFile) calculateInfoHash() error {
 	return nil
 }
 
-// GetTransferUnitCount returns the number of transfer units (64KB blocks)
+// GetTransferUnitCount returns the number of transfer units
 func (n *BaoFile) GetTransferUnitCount() uint64 {
-	return (n.Length + n.TransferSize - 1) / n.TransferSize
+	return (n.Length + uint64(config.TransferUnitSize-1)) / uint64(config.TransferUnitSize)
 }
 
 // GetTransferUnitSize returns the size of a specific transfer unit
@@ -109,13 +103,13 @@ func (n *BaoFile) GetTransferUnitSize(unitIndex uint64) (uint64, error) {
 		return 0, fmt.Errorf("transfer unit index out of bounds")
 	}
 
-	start := unitIndex * n.TransferSize
-	end := start + n.TransferSize
+	start := unitIndex * uint64(config.TransferUnitSize)
+	end := start + uint64(config.TransferUnitSize)
 	if end > n.Length {
 		return n.Length - start, nil
 	}
 
-	return n.TransferSize, nil
+	return uint64(config.TransferUnitSize), nil
 }
 
 // Save writes the BaoFile to disk

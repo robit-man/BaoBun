@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+
+	"github.com/baoswarm/baobun/internal/config"
 )
 
 // FileIO handles range-based file storage for BaoFile
@@ -16,7 +18,6 @@ type FileIO struct {
 	file *os.File
 
 	// Transfer-unit tracking
-	unitSize  uint64
 	unitCount uint64
 	haveUnits Bitfield
 
@@ -34,7 +35,6 @@ func NewFileIO(npf *BaoFile, fileLocation string) (*FileIO, error) {
 
 	f := &FileIO{
 		npf:       npf,
-		unitSize:  npf.TransferSize,
 		unitCount: tuCount,
 		haveUnits: NewBitfield(tuCount),
 	}
@@ -117,7 +117,7 @@ func (f *FileIO) ReadTransferUnit(index uint64) ([]byte, error) {
 		return nil, fmt.Errorf("transfer unit out of range")
 	}
 
-	start := index * f.unitSize
+	start := index * uint64(config.TransferUnitSize)
 	size, _ := f.npf.GetTransferUnitSize(index)
 	return f.ReadRange(start, size)
 }
@@ -133,7 +133,7 @@ func (f *FileIO) WriteTransferUnit(index uint64, data []byte) error {
 		return fmt.Errorf("transfer unit size mismatch")
 	}
 
-	start := index * f.unitSize
+	start := index * uint64(config.TransferUnitSize)
 	if err := f.WriteRange(start, data); err != nil {
 		return err
 	}

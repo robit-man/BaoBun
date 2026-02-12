@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/baoswarm/baobun/internal/config"
 	"github.com/baoswarm/baobun/internal/debugs"
 	"github.com/baoswarm/baobun/pkg/protocol"
 )
@@ -247,7 +248,6 @@ func (ph *PeerHandler) HandleMessage(msg protocol.PeerMessage) {
 		}
 
 		debugs.NumTransferRequestReceived++
-		debugs.LogNums()
 
 		// Handle incoming transferUnit request (if we have the transferUnit)
 		ph.handleIncomingRequest(req.UnitIndex)
@@ -355,7 +355,6 @@ func (ph *PeerHandler) SendTransferUnitRequest(transferUnitIndex uint64) error {
 	}
 
 	debugs.NumTransferRequestSend++
-	debugs.LogNums()
 
 	return ph.Send(protocol.PeerMessage{
 		InfoHash: ph.Swarm.InfoHash,
@@ -381,7 +380,7 @@ func (ph *PeerHandler) SendHave(transferUnitIndex uint64) error {
 
 func (ph *PeerHandler) SendTransferUnit(transferUnitIndex uint64, data []byte) error {
 	// Calculate the offset for this transfer unit
-	offset := int64(transferUnitIndex) * 64 * 1024 // 64KB per unit
+	offset := int64(transferUnitIndex) * int64(config.TransferUnitSize)
 	length := int64(len(data))
 
 	var proof *protocol.Proof
@@ -435,7 +434,6 @@ func (ph *PeerHandler) SendTransferUnit(transferUnitIndex uint64, data []byte) e
 func (ph *PeerHandler) recordUpload(n int) {
 
 	debugs.NumTransferResponseSend++
-	debugs.LogNums()
 
 	now := time.Now()
 
@@ -476,7 +474,6 @@ func (ph *PeerHandler) UploadRate() uint32 {
 func (ph *PeerHandler) recordDownload(n int) {
 
 	debugs.NumTransferResponseReceived++
-	debugs.LogNums()
 
 	now := time.Now()
 

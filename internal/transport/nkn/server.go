@@ -7,6 +7,7 @@ import (
 	"log"
 
 	"github.com/baoswarm/baobun/internal/core"
+	"github.com/baoswarm/baobun/internal/debugs"
 	"github.com/baoswarm/baobun/pkg/protocol"
 	nkn "github.com/nknorg/nkn-sdk-go"
 )
@@ -52,12 +53,15 @@ func (t *Transport) Announce(
 		nil,
 	)
 	if err != nil {
+		debugs.ConnectedToTracker = false
 		return protocol.AnnounceResponse{}, err
 	}
 	resp := <-reply.C
 	if len(resp.Data) == 0 {
+		debugs.ConnectedToTracker = false
 		return protocol.AnnounceResponse{}, fmt.Errorf("no reply from tracker")
 	}
+	debugs.ConnectedToTracker = true
 	log.Println("Announcement reply received...")
 
 	var out protocol.AnnounceResponse
