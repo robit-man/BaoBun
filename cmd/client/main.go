@@ -104,13 +104,9 @@ func LaunchCore(downloadsLocation string, seed string, loadTest bool) *core.Clie
 		log.Printf("Loaded swarm %x", ih)
 
 		// ---------------- Announce ----------------
-		// This will:
-		// - contact tracker(s)
-		// - receive peers
-		// - connect to peers
-		// - create PeerHandlers
-		// - perform handshake + bitfield exchange
-		coreClient.AnnounceSwarm(
+		// Run initial announce in background so startup doesn't block
+		// while waiting for tracker responses.
+		go coreClient.AnnounceSwarm(
 			context.Background(),
 			ih,
 			protocol.EventStarted,
