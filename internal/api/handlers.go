@@ -69,10 +69,13 @@ func (s *Server) UploadBao(w http.ResponseWriter, r *http.Request) {
 	ih, err := s.coreClient.ImportBaoData(dataFromPost, downloadDir)
 	if err != nil {
 		// If not a .bao descriptor, treat upload as a raw file and generate a .bao.
+		// Older frontends may not send X-Filename, so keep a safe fallback name.
 		fileName := decodeUploadFilename(r.Header.Get("X-Filename"))
 		if fileName == "" {
-			http.Error(w, "missing X-Filename header for raw file upload", http.StatusBadRequest)
-			return
+			fileName = decodeUploadFilename(r.URL.Query().Get("filename"))
+		}
+		if fileName == "" {
+			fileName = "upload.bin"
 		}
 
 		if err := os.MkdirAll(downloadDir, 0755); err != nil {

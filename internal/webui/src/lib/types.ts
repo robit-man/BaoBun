@@ -1,8 +1,10 @@
 export type TorrentState =
   | "downloading"
   | "seeding"
+  | "stopped"
   | "paused"
   | "queued"
+  | "stalled"
   | "error";
 
 export interface TorrentStatus {
@@ -10,6 +12,9 @@ export interface TorrentStatus {
   name: string;
   downRate: number;   // bytes/sec
   upRate: number;     // bytes/sec
+  downloaded: number; // bytes
+  uploaded: number;   // bytes
+  ratio: number;
   peers: PeerStatus[];
   files: FileStatus[];
   state: TorrentState;

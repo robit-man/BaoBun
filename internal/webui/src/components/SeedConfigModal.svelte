@@ -183,7 +183,7 @@
   }
 
   .status.ok {
-    color: var(--green);
+    color: #47d37d;
   }
 
   .actions {

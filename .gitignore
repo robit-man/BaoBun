@@ -35,3 +35,4 @@ seeds.json
 downloads_*
 __debug_bin.exe*
 .baobun/
+downloads/*

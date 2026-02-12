@@ -13,6 +13,9 @@ export async function fetchTorrents(): Promise<TorrentStatus[]> {
 
   return data.map((torrent) => ({
     ...torrent,
+    downloaded: Number(torrent?.downloaded ?? 0),
+    uploaded: Number(torrent?.uploaded ?? 0),
+    ratio: Number(torrent?.ratio ?? 0),
     peers: Array.isArray(torrent?.peers) ? torrent.peers : [],
     files: Array.isArray(torrent?.files) ? torrent.files : [],
   })) as TorrentStatus[];

@@ -6,6 +6,7 @@ type TorrentState string
 const (
 	StateDownloading TorrentState = "downloading"
 	StateSeeding     TorrentState = "seeding"
+	StateStopped     TorrentState = "stopped"
 	StatePaused      TorrentState = "paused"
 	StateQueued      TorrentState = "queued"
 	StateError       TorrentState = "error"
@@ -19,15 +20,18 @@ const (
 )
 
 type TorrentStatus struct {
-	ID        string       `json:"id"`
-	Name      string       `json:"name"`
-	DownRate  uint32       `json:"downRate"` // bytes/sec
-	UpRate    uint32       `json:"upRate"`
-	Peers     []PeerStatus `json:"peers"`
-	Files     []FileStatus `json:"files"`
-	State     TorrentState `json:"state"`
-	FileSize  uint64       `json:"fileSize"`
-	Remaining uint64       `json:"remaining"`
+	ID         string       `json:"id"`
+	Name       string       `json:"name"`
+	DownRate   uint32       `json:"downRate"` // bytes/sec
+	UpRate     uint32       `json:"upRate"`
+	Downloaded uint64       `json:"downloaded"`
+	Uploaded   uint64       `json:"uploaded"`
+	Ratio      float64      `json:"ratio"`
+	Peers      []PeerStatus `json:"peers"`
+	Files      []FileStatus `json:"files"`
+	State      TorrentState `json:"state"`
+	FileSize   uint64       `json:"fileSize"`
+	Remaining  uint64       `json:"remaining"`
 }
 
 type FileStatus struct {

@@ -97,7 +97,7 @@
 
   .content {
     background: #111;
-    border: 2px dashed #4cafef;
+    border: 2px dashed #c7aa81;
     padding: 3rem 4rem;
     border-radius: 12px;
     color: white;

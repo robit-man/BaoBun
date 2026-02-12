@@ -1,7 +1,5 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import TorrentList from "./lib/TorrentsList.svelte";
-  import TorrentDetails from "./lib/TorrentDetails.svelte";
   import {
     autoGenerateSeedConfig,
     fetchSeedConfig,
@@ -12,9 +10,9 @@
   import type { SeedConfig, TorrentStatus } from "./lib/types";
   import FileDrop from "./components/FileDrop.svelte";
   import SeedConfigModal from "./components/SeedConfigModal.svelte";
+  import TorrentsList from "./lib/TorrentsList.svelte";
 
   let torrents: TorrentStatus[] = [];
-  let selected: TorrentStatus | null = null;
   let error: string | null = null;
   let configOpen = false;
   let configBusy = false;
@@ -23,17 +21,13 @@
   let seedConfig: SeedConfig | null = null;
   let uploadError: string | null = null;
   let uploadMessage: string | null = null;
+
   const REFRESH_INTERVAL_MS = 1000;
 
   async function refresh() {
     try {
       torrents = await fetchTorrents();
       error = null;
-
-      // keep selection in sync
-      if (selected) {
-        selected = torrents.find((t) => t.id === selected?.id) ?? selected;
-      }
     } catch {
       error = "Disconnected";
     }
@@ -58,21 +52,12 @@
     }
 
     try {
-      const importedIds: string[] = [];
-
       for (const file of files) {
-        const result = await uploadBao(file.name, file.data);
-        importedIds.push(result.infoHash);
+        await uploadBao(file.name, file.data);
       }
 
       await refresh();
-
-      const newest = importedIds[importedIds.length - 1];
-      if (newest) {
-        selected = torrents.find((t) => t.id === newest) ?? selected;
-      }
-
-      uploadMessage = `Imported ${files.length} .bao file(s).`;
+      uploadMessage = `Imported ${files.length} file(s).`;
     } catch (err) {
       uploadError =
         err instanceof Error ? err.message : "Failed to import dropped file(s)";
@@ -141,80 +126,21 @@
   on:generate={onGenerateSeeds}
 />
 
-<div class="app-layout">
-  <div class="toolbar">
-    <div class="toolbar-left">
-      <strong>BaoBun</strong>
-    </div>
-    <button class="toolbar-btn" type="button" on:click={openConfig}>
-      Config
-    </button>
-  </div>
-
-  {#if error}
-    <p class="error">{error}</p>
-  {/if}
-  {#if uploadError}
-    <p class="error">{uploadError}</p>
-  {/if}
-  {#if uploadMessage}
-    <p class="ok">{uploadMessage}</p>
-  {/if}
-
-  <div class="list-pane">
-    <TorrentList {torrents} bind:selected />
-  </div>
-
-  <div class="details-pane">
-    <TorrentDetails torrent={selected} />
-  </div>
+<div class="page-shell">
+  <TorrentsList
+    {torrents}
+    {error}
+    {uploadError}
+    {uploadMessage}
+    on:load={handleLoad}
+    on:openConfig={openConfig}
+  />
 </div>
 
 <style>
-  .app-layout {
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 8px;
+  .page-shell {
+    min-height: 100vh;
+    padding: 14px;
     box-sizing: border-box;
-  }
-
-  .toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: var(--panel);
-    border-radius: 8px;
-    padding: 8px 12px;
-  }
-
-  .toolbar-left {
-    font-size: 14px;
-  }
-
-  .toolbar-btn {
-    padding: 6px 10px;
-    font-size: 12px;
-  }
-
-  .list-pane {
-    flex: 1;
-    min-height: 0; /* REQUIRED for scrolling */
-  }
-
-  .details-pane {
-    height: 260px;
-    background: var(--panel);
-    border-radius: 8px;
-    overflow: hidden;
-  }
-
-  .error {
-    color: var(--red);
-  }
-
-  .ok {
-    color: var(--green);
   }
 </style>
